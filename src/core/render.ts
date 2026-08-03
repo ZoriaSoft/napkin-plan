@@ -111,8 +111,11 @@ function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number, s: numbe
   const is = s - pad * 2;
 
   if (id === "empty") {
-    ctx.fillStyle = "#f4f1ea";
+    // Outside room — muted so floor/walls read clearly
+    ctx.fillStyle = def.fill;
     ctx.fillRect(x, y, s, s);
+    ctx.strokeStyle = "rgba(0,0,0,0.04)";
+    ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
     return;
   }
   if (id === "floor") {
@@ -123,11 +126,16 @@ function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number, s: numbe
   if (id === "wall") {
     ctx.fillStyle = def.fill;
     ctx.fillRect(x, y, s, s);
+    // slight bevel so walls read as solid structure
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(x, y, s, Math.max(2, s * 0.15));
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(x, y + s * 0.85, s, Math.max(2, s * 0.15));
     return;
   }
 
   // floor under props
-  ctx.fillStyle = "#e8e0d4";
+  ctx.fillStyle = "#f3ebe0";
   ctx.fillRect(x, y, s, s);
 
   ctx.fillStyle = def.fill;

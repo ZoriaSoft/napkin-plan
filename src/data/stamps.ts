@@ -2,9 +2,9 @@ import type { StampDef, StampId } from "../core/types";
 
 /** Max 16 job-useful stamps — no filler. */
 export const STAMPS: StampDef[] = [
-  { id: "empty", name: "Empty", kind: "floor", fill: "#f4f1ea" },
-  { id: "floor", name: "Floor", kind: "floor", fill: "#e8e0d4" },
-  { id: "wall", name: "Wall", kind: "floor", fill: "#3a3f48" },
+  { id: "empty", name: "Empty", kind: "floor", fill: "#d5d0c6" },
+  { id: "floor", name: "Floor", kind: "floor", fill: "#f3ebe0" },
+  { id: "wall", name: "Wall", kind: "floor", fill: "#2a3038" },
   { id: "door", name: "Door", kind: "prop", fill: "#8b5a2b", stroke: "#5c3a1a" },
   { id: "window", name: "Window", kind: "prop", fill: "#a8d4e8", stroke: "#5a8aa0" },
   { id: "table", name: "Table", kind: "prop", fill: "#c4a574", stroke: "#7a5a30" },

@@ -4,6 +4,10 @@
 
 Free browser tool — not CAD. Place furniture stamps on a grid, export PNG or JSON. No account.
 
+**Play:** https://zo.pub/triangle/napkin-plan/index.html  
+
+> Note: the folder URL on zo.pub shows a file list — open **`index.html`** to run the app.
+
 ## Brand
 
 | | |
@@ -44,8 +48,9 @@ Output: `dist/` (static host).
 ```bash
 bun run build
 zopub sync napkin-plan dist
-# → https://zo.pub/triangle/napkin-plan
+# → https://zo.pub/triangle/napkin-plan/index.html
 ```
+
 
 ## Related
 
