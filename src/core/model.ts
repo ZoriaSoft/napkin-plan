@@ -19,7 +19,8 @@ export class PlanModel {
   private strokeOpen = false;
 
   constructor() {
-    this.map = templateById("studio").build();
+    // Meeting room = clear closed rectangle (best first impression)
+    this.map = templateById("meeting").build();
   }
 
   idx(c: number, r: number): number {
