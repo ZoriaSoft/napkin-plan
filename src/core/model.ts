@@ -9,7 +9,8 @@ export class PlanModel {
   tool: Tool = "stamp";
   stamp: StampId = "table";
   showGrid = true;
-  zoom = 1;
+  /** Fit full 24×24 sheet with margin on typical desktop stage */
+  zoom = 0.92;
   panX = 0;
   panY = 0;
 

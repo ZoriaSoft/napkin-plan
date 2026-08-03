@@ -124,13 +124,14 @@ function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number, s: numbe
     return;
   }
   if (id === "wall") {
+    // Solid block + strong edge so 1-cell top/bottom walls stay readable
     ctx.fillStyle = def.fill;
     ctx.fillRect(x, y, s, s);
-    // slight bevel so walls read as solid structure
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    ctx.fillRect(x, y, s, Math.max(2, s * 0.15));
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
-    ctx.fillRect(x, y + s * 0.85, s, Math.max(2, s * 0.15));
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x + 1, y + 1, s - 2, Math.max(2, s * 0.18));
+    ctx.strokeStyle = "rgba(0,0,0,0.45)";
+    ctx.lineWidth = Math.max(1.5, s * 0.08);
+    ctx.strokeRect(x + 0.75, y + 0.75, s - 1.5, s - 1.5);
     return;
   }
 
