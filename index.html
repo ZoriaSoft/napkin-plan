@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NapkinPlan — Stamp a room layout in 60 seconds</title>
+    <meta
+      name="description"
+      content="NapkinPlan: stamp tables, chairs, and doors on a grid. Export PNG in 60 seconds. Free, no signup."
+    />
+    <meta name="theme-color" content="#0B0F14" />
+    <meta property="og:title" content="NapkinPlan" />
+    <meta
+      property="og:description"
+      content="Stamp a room layout in 60 seconds. Free browser tool, no account."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-name">NapkinPlan</span>
+          <span class="brand-tag">Stamp a room layout in 60 seconds</span>
+        </div>
+        <div class="group tools" role="toolbar" aria-label="Tools">
+          <button type="button" data-tool="stamp" class="btn tool active" title="Stamp (S)">Stamp</button>
+          <button type="button" data-tool="erase" class="btn tool" title="Erase (E)">Erase</button>
+          <button type="button" data-tool="fill" class="btn tool" title="Fill floor (F)">Fill</button>
+        </div>
+        <div class="group history">
+          <button type="button" id="btn-undo" class="btn icon" title="Undo (Ctrl+Z)">↶</button>
+          <button type="button" id="btn-redo" class="btn icon" title="Redo (Ctrl+Y)">↷</button>
+        </div>
+        <div class="group view">
+          <button type="button" id="btn-zoom-out" class="btn icon" title="Zoom out">−</button>
+          <button type="button" id="btn-zoom-in" class="btn icon" title="Zoom in">+</button>
+          <button type="button" id="btn-grid" class="btn icon active" title="Toggle grid (G)">#</button>
+        </div>
+        <div class="group file">
+          <div class="dropdown">
+            <button type="button" id="btn-templates" class="btn" title="Job templates">Templates ▾</button>
+            <div id="template-menu" class="menu hidden" role="menu"></div>
+          </div>
+          <button type="button" id="btn-load" class="btn" title="Load JSON">Load</button>
+          <button type="button" id="btn-save" class="btn" title="Save JSON">Save</button>
+          <button type="button" id="btn-png" class="btn primary" title="Export PNG">PNG</button>
+          <button type="button" id="btn-about" class="btn icon" title="About">?</button>
+        </div>
+        <div id="status" class="status">ready</div>
+      </header>
+
+      <main class="stage">
+        <canvas id="canvas" width="800" height="800" aria-label="Room grid"></canvas>
+      </main>
+
+      <footer class="bottombar">
+        <div class="bottom-meta">
+          <span class="label">Stamps</span>
+          <span id="hint" class="hint">Click to stamp · Drag to paint · Space+drag pan · Scroll zoom</span>
+        </div>
+        <div id="palette" class="palette" role="listbox" aria-label="Stamp palette"></div>
+      </footer>
+
+      <div id="toast" class="toast hidden"></div>
+
+      <div id="about" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+          <h2>NapkinPlan</h2>
+          <p class="tagline">Stamp a room layout in 60 seconds.</p>
+          <p>
+            Not CAD — a free napkin-quality room sketch tool. Place furniture stamps on a grid,
+            export PNG or JSON. No account.
+          </p>
+          <p class="shortcuts">
+            S stamp · E erase · F fill · G grid · Ctrl+Z/Y undo/redo · Space pan
+          </p>
+          <button type="button" id="btn-about-close" class="btn primary">Close</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

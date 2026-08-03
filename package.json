@@ -1,0 +1,17 @@
+{
+  "name": "napkin-plan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "NapkinPlan — stamp a room layout in 60 seconds",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "verify": "tsc --noEmit && vite build"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0"
+  }
+}
