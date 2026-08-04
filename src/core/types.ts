@@ -1,5 +1,6 @@
 export const GRID = 24;
-export const CELL = 28; // logical px before zoom
+/** Larger cells = readable furniture icons */
+export const CELL = 36;
 
 export type Tool = "stamp" | "erase" | "fill";
 
@@ -25,7 +26,6 @@ export interface StampDef {
   id: StampId;
   name: string;
   kind: "floor" | "prop";
-  /** fill color for simple stamp draw */
   fill: string;
   stroke?: string;
 }
@@ -35,7 +35,6 @@ export interface MapData {
   w: number;
   h: number;
   title: string;
-  /** length w*h, StampId as string */
   cells: string[];
 }
 

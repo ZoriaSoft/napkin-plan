@@ -1,6 +1,6 @@
 import "./style.css";
 import { PlanModel } from "./core/model";
-import { paint, screenToCell, exportPng } from "./core/render";
+import { paint, screenToCell, exportPng, fitZoom, stampIconDataUrl } from "./core/render";
 import { STAMPS } from "./data/stamps";
 import { TEMPLATES } from "./data/templates";
 import type { StampId, Tool } from "./core/types";
@@ -23,7 +23,8 @@ let toastTimer = 0;
 
 function redraw() {
   paint(ctx, model, hover);
-  statusEl.textContent = `${model.map.title} · ${model.tool} · ${model.stamp}`;
+  const stampName = STAMPS.find((s) => s.id === model.stamp)?.name ?? model.stamp;
+  statusEl.textContent = `${model.map.title} · ${model.tool} · ${stampName}`;
 }
 
 function toast(msg: string) {
@@ -38,6 +39,7 @@ function setTool(t: Tool) {
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
     b.classList.toggle("active", b.dataset.tool === t);
   });
+  canvas.dataset.tool = t;
   redraw();
 }
 
@@ -51,7 +53,12 @@ function setStamp(id: StampId) {
   redraw();
 }
 
-// palette
+function afterMapChange() {
+  fitZoom(model, canvas);
+  redraw();
+}
+
+// palette with real stamp icons
 for (const s of STAMPS) {
   if (s.id === "empty") continue;
   const b = document.createElement("button");
@@ -59,7 +66,16 @@ for (const s of STAMPS) {
   b.className = "stamp" + (s.id === model.stamp ? " active" : "");
   b.dataset.stamp = s.id;
   b.title = s.name;
-  b.innerHTML = `<span class="swatch" style="--c:${s.fill}"></span><span>${s.name}</span>`;
+  b.setAttribute("role", "option");
+  const img = document.createElement("img");
+  img.src = stampIconDataUrl(s.id, 48);
+  img.alt = "";
+  img.width = 28;
+  img.height = 28;
+  img.className = "stamp-icon";
+  const label = document.createElement("span");
+  label.textContent = s.name;
+  b.append(img, label);
   b.addEventListener("click", () => setStamp(s.id));
   paletteEl.appendChild(b);
 }
@@ -70,12 +86,12 @@ for (const t of TEMPLATES) {
   item.type = "button";
   item.className = "menu-item";
   item.role = "menuitem";
-  item.textContent = `${t.title} — ${t.use}`;
+  item.innerHTML = `<strong>${t.title}</strong><span>${t.use}</span>`;
   item.addEventListener("click", () => {
     model.loadTemplate(t.id);
     templateMenu.classList.add("hidden");
     toast(`Template: ${t.title}`);
-    redraw();
+    afterMapChange();
   });
   templateMenu.appendChild(item);
 }
@@ -101,7 +117,12 @@ document.querySelector("#btn-zoom-in")!.addEventListener("click", () => {
   redraw();
 });
 document.querySelector("#btn-zoom-out")!.addEventListener("click", () => {
-  model.zoom = Math.max(0.4, model.zoom / 1.15);
+  model.zoom = Math.max(0.35, model.zoom / 1.15);
+  redraw();
+});
+document.querySelector("#btn-fit")!.addEventListener("click", () => {
+  fitZoom(model, canvas);
+  toast("Fit view");
   redraw();
 });
 document.querySelector("#btn-grid")!.addEventListener("click", (e) => {
@@ -145,7 +166,7 @@ document.querySelector("#btn-load")!.addEventListener("click", () => {
       const data = JSON.parse(text);
       model.importMap(data);
       toast("Map loaded");
-      redraw();
+      afterMapChange();
     } catch {
       toast("Could not load map");
     }
@@ -171,12 +192,12 @@ function downloadBlob(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-// canvas interaction
 canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
   if (e.button === 1 || e.button === 2 || spaceDown || e.altKey) {
     panning = true;
     lastPan = { x: e.clientX, y: e.clientY };
+    canvas.classList.add("panning");
     return;
   }
   if (e.button !== 0) return;
@@ -210,6 +231,7 @@ canvas.addEventListener("pointerup", () => {
   if (painting) model.endStroke();
   painting = false;
   panning = false;
+  canvas.classList.remove("panning");
 });
 
 canvas.addEventListener("pointerleave", () => {
@@ -222,7 +244,7 @@ canvas.addEventListener(
   (e) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    model.zoom = Math.min(2.5, Math.max(0.4, model.zoom * factor));
+    model.zoom = Math.min(2.5, Math.max(0.35, model.zoom * factor));
     redraw();
   },
   { passive: false },
@@ -241,6 +263,10 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "g" || e.key === "G") {
     model.showGrid = !model.showGrid;
     document.querySelector("#btn-grid")!.classList.toggle("active", model.showGrid);
+    redraw();
+  }
+  if (e.key === "0" && !e.ctrlKey) {
+    fitZoom(model, canvas);
     redraw();
   }
   if (e.ctrlKey && e.key === "z") {
@@ -263,5 +289,13 @@ window.addEventListener("keyup", (e) => {
   if (e.code === "Space") spaceDown = false;
 });
 
-window.addEventListener("resize", redraw);
-redraw();
+window.addEventListener("resize", () => {
+  fitZoom(model, canvas);
+  redraw();
+});
+
+// first paint after layout
+requestAnimationFrame(() => {
+  fitZoom(model, canvas);
+  redraw();
+});
