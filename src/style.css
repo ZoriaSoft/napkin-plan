@@ -64,6 +64,34 @@ body {
   line-height: 1.25;
 }
 
+.title-input {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: var(--font);
+  padding: 2px 4px;
+  margin-top: 2px;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 200px;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.title-input:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(61, 220, 151, 0.05);
+}
+
+
 .group {
   display: flex;
   gap: 4px;
@@ -390,4 +418,37 @@ body {
   .stamp {
     min-width: 48px;
   }
+  .title-input {
+    max-width: 140px;
+  }
+  .topbar {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .btn.icon {
+    min-width: 32px;
+    padding: 6px 8px;
+  }
+  .palette {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 8px;
+  }
+}
+
+/* Tool cursors */
+canvas[data-tool="stamp"] {
+  cursor: crosshair;
+}
+
+canvas[data-tool="erase"] {
+  cursor: not-allowed;
+}
+
+canvas[data-tool="fill"] {
+  cursor: cell;
 }

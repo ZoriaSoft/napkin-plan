@@ -1,0 +1,55 @@
+export const tr = {
+  app: { name: "NapkinPlan", tagline: "60 saniyede oda yerleşimi çiz" },
+  tools: {
+    stamp: "Damga",
+    erase: "Silgi",
+    fill: "Doldur",
+  },
+  actions: {
+    undo: "Geri al",
+    redo: "Yinele",
+    zoomIn: "Yakınlaştır",
+    zoomOut: "Uzaklaştır",
+    fit: "Sığdır",
+    grid: "Izgara",
+    templates: "Şablonlar",
+    load: "Yükle",
+    save: "Kaydet",
+    downloadPng: "PNG İndir",
+    share: "Paylaş",
+    about: "Hakkında",
+  },
+  status: {
+    ready: "hazır",
+    cell: "Hücre",
+  },
+  toast: {
+    undo: "Geri alındı",
+    redo: "Yinelendi",
+    fitView: "Görünüm sığdırıldı",
+    gridOn: "Izgara açık",
+    gridOff: "Izgara kapalı",
+    templateLoaded: "Şablon yüklendi",
+    pngDownloaded: "PNG indirildi",
+    jsonDownloaded: "JSON indirildi",
+    mapLoaded: "Harita yüklendi — düzenlemeye hazır",
+    shareCopied: "Paylaşım linki kopyalandı",
+    shareFailed: "Paylaşım linki açıldı",
+    shareTooLong: "Plan çok büyük, link çok uzun olur",
+    loadFailed: "Harita yüklenemedi",
+    welcome: "Hoş geldin! Sürükleyerek damga bas, sağ tık ile kaydır.",
+  },
+  about: {
+    title: "NapkinPlan",
+    tagline: "60 saniyede oda yerleşimi çiz.",
+    body: "CAD değil — peçete üzerine çizim kalitesinde, ücretsiz bir oda tasarım aracı. Mobilya damgalarını ızgaraya yerleştir, PNG veya JSON olarak dışa aktar. Hesap yok.",
+    shortcuts: "S damga · E silgi · L doldur · G ızgara · Ctrl+Z/Y geri/yinele · Boşluk kaydır",
+    close: "Kapat",
+  },
+  palette: { label: "Damgalar" },
+  hint: "Tıkla / sürükle damga bas · Sağ tık veya Boşluk kaydır · Scroll yakınlaştır · F sığdır",
+  titlePlaceholder: "Plan başlığı…",
+};
+
+type DeepString<T> = { [K in keyof T]: T[K] extends string ? string : DeepString<T[K]> };
+export type I18nKey = DeepString<typeof tr>;

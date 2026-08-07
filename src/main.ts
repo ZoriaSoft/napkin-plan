@@ -3,11 +3,13 @@ import { PlanModel } from "./core/model";
 import { paint, screenToCell, exportPng, fitZoom, stampIconDataUrl } from "./core/render";
 import { STAMPS } from "./data/stamps";
 import { TEMPLATES } from "./data/templates";
+import { t, getLocale, toggleLocale } from "./i18n";
 import type { StampId, Tool } from "./core/types";
 
 const model = new PlanModel();
 const STORAGE_KEY = "napkin-plan:last-state:v1";
 
+// --- State restore ---
 try {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) model.restoreState(saved);
@@ -19,40 +21,60 @@ const shared = new URLSearchParams(window.location.hash.slice(1)).get("plan");
 if (shared) {
   try {
     model.restoreState(decodeURIComponent(escape(atob(shared))));
+    toast(t().toast.mapLoaded);
   } catch {
-    toast("Could not open shared plan");
+    toast(t().toast.loadFailed);
   }
 }
 
+// --- DOM refs ---
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const paletteEl = document.querySelector<HTMLDivElement>("#palette")!;
-const statusEl = document.querySelector<HTMLDivElement>("#status")!;
+const statusTitleEl = document.querySelector<HTMLSpanElement>("#status-title")!;
+const statusCellEl = document.querySelector<HTMLSpanElement>("#status-cell")!;
 const toastEl = document.querySelector<HTMLDivElement>("#toast")!;
 const templateMenu = document.querySelector<HTMLDivElement>("#template-menu")!;
 const aboutEl = document.querySelector<HTMLDivElement>("#about")!;
+const titleInput = document.querySelector<HTMLInputElement>("#title-input")!;
+const langBtn = document.querySelector<HTMLButtonElement>("#btn-lang")!;
 const ctx = canvas.getContext("2d")!;
 
+// --- Interaction state ---
 let hover: { c: number; r: number } | null = null;
 let painting = false;
 let panning = false;
 let lastPan = { x: 0, y: 0 };
 let spaceDown = false;
 let toastTimer = 0;
+let persistTimer = 0;
+let rafPending = false;
 
+// --- Throttled persist (300ms debounce) ---
 function persist() {
-  localStorage.setItem(STORAGE_KEY, model.serializeState());
+  window.clearTimeout(persistTimer);
+  persistTimer = window.setTimeout(() => {
+    localStorage.setItem(STORAGE_KEY, model.serializeState());
+  }, 300);
+}
+
+// --- rAF-batched redraw ---
+function redraw() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    paint(ctx, model, hover);
+    const i18n = t();
+    const stampName = STAMPS.find((s) => s.id === model.stamp)?.name ?? model.stamp;
+    statusTitleEl.textContent = `${model.map.title} · ${i18n.tools[model.tool]} · ${stampName}`;
+    statusCellEl.textContent = hover ? `${i18n.status.cell} ${hover.c},${hover.r}` : "";
+    updateHistoryButtons();
+  });
 }
 
 function updateHistoryButtons() {
   (document.querySelector("#btn-undo") as HTMLButtonElement).disabled = !model.canUndo();
   (document.querySelector("#btn-redo") as HTMLButtonElement).disabled = !model.canRedo();
-}
-
-function redraw() {
-  paint(ctx, model, hover);
-  const stampName = STAMPS.find((s) => s.id === model.stamp)?.name ?? model.stamp;
-  statusEl.textContent = `${model.map.title} · ${model.tool} · ${stampName}`;
-  updateHistoryButtons();
 }
 
 function toast(msg: string) {
@@ -62,13 +84,13 @@ function toast(msg: string) {
   toastTimer = window.setTimeout(() => toastEl.classList.add("hidden"), 1600);
 }
 
-function setTool(t: Tool) {
-  model.tool = t;
+function setTool(tool: Tool) {
+  model.tool = tool;
   persist();
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tool === t);
+    b.classList.toggle("active", b.dataset.tool === tool);
   });
-  canvas.dataset.tool = t;
+  canvas.dataset.tool = tool;
   redraw();
 }
 
@@ -89,7 +111,21 @@ function afterMapChange() {
   redraw();
 }
 
-// palette with real stamp icons
+// --- Title ---
+function setTitle(title: string) {
+  model.map.title = title || "Untitled";
+  persist();
+  redraw();
+}
+
+titleInput.value = model.map.title;
+titleInput.addEventListener("input", () => setTitle(titleInput.value));
+titleInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") titleInput.blur();
+  e.stopPropagation(); // don't trigger canvas shortcuts
+});
+
+// --- Palette ---
 for (const s of STAMPS) {
   if (s.id === "empty") continue;
   const b = document.createElement("button");
@@ -111,41 +147,47 @@ for (const s of STAMPS) {
   paletteEl.appendChild(b);
 }
 
-// templates menu
-for (const t of TEMPLATES) {
+// --- Templates ---
+for (const tpl of TEMPLATES) {
   const item = document.createElement("button");
   item.type = "button";
   item.className = "menu-item";
   item.role = "menuitem";
-  item.innerHTML = `<strong>${t.title}</strong><span>${t.use}</span>`;
+  item.innerHTML = `<strong>${tpl.title}</strong><span>${tpl.use}</span>`;
   item.addEventListener("click", () => {
-    model.loadTemplate(t.id);
+    model.loadTemplate(tpl.id);
+    setTitle(tpl.title);
+    titleInput.value = tpl.title;
     persist();
     templateMenu.classList.add("hidden");
-    toast(`Template: ${t.title}`);
+    toast(t().toast.templateLoaded);
     afterMapChange();
   });
   templateMenu.appendChild(item);
 }
 
+// --- Tool buttons ---
 document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
   b.addEventListener("click", () => setTool(b.dataset.tool as Tool));
 });
 
+// --- History ---
 document.querySelector("#btn-undo")!.addEventListener("click", () => {
   if (model.undo()) {
     persist();
-    toast("Undo — change reverted");
+    toast(t().toast.undo);
     redraw();
   }
 });
 document.querySelector("#btn-redo")!.addEventListener("click", () => {
   if (model.redo()) {
     persist();
-    toast("Redo — change restored");
+    toast(t().toast.redo);
     redraw();
   }
 });
+
+// --- View ---
 document.querySelector("#btn-zoom-in")!.addEventListener("click", () => {
   model.zoom = Math.min(2.5, model.zoom * 1.15);
   redraw();
@@ -156,49 +198,95 @@ document.querySelector("#btn-zoom-out")!.addEventListener("click", () => {
 });
 document.querySelector("#btn-fit")!.addEventListener("click", () => {
   fitZoom(model, canvas);
-  toast("Fit view");
+  toast(t().toast.fitView);
   redraw();
 });
 document.querySelector("#btn-grid")!.addEventListener("click", (e) => {
   model.showGrid = !model.showGrid;
   persist();
   (e.currentTarget as HTMLElement).classList.toggle("active", model.showGrid);
-  toast(model.showGrid ? "Grid on" : "Grid off");
+  toast(model.showGrid ? t().toast.gridOn : t().toast.gridOff);
   redraw();
 });
 
+// --- Templates menu ---
 document.querySelector("#btn-templates")!.addEventListener("click", (e) => {
   e.stopPropagation();
   templateMenu.classList.toggle("hidden");
 });
 document.addEventListener("click", () => templateMenu.classList.add("hidden"));
 
+// --- Language toggle ---
+function updateLangUI() {
+  const i18n = t();
+  langBtn.textContent = getLocale() === "tr" ? "TR" : "EN";
+  titleInput.placeholder = i18n.titlePlaceholder;
+  document.querySelector("#hint")!.textContent = i18n.hint;
+  document.querySelector(".label")!.textContent = i18n.palette.label;
+  document.querySelector("#btn-about")!.setAttribute("title", i18n.actions.about);
+  document.querySelector("#btn-templates")!.textContent = `${i18n.actions.templates} ▾`;
+  document.querySelector("#btn-load")!.textContent = i18n.actions.load;
+  document.querySelector("#btn-save")!.textContent = i18n.actions.save;
+  document.querySelector("#btn-png")!.textContent = i18n.actions.downloadPng;
+  document.querySelector("#btn-share")!.textContent = i18n.actions.share;
+  document.querySelector("#btn-undo")!.setAttribute("title", i18n.actions.undo);
+  document.querySelector("#btn-redo")!.setAttribute("title", i18n.actions.redo);
+  document.querySelector("#btn-zoom-in")!.setAttribute("title", i18n.actions.zoomIn);
+  document.querySelector("#btn-zoom-out")!.setAttribute("title", i18n.actions.zoomOut);
+  document.querySelector("#btn-fit")!.setAttribute("title", i18n.actions.fit);
+  document.querySelector("#btn-grid")!.setAttribute("title", i18n.actions.grid);
+  // About modal
+  document.querySelector("#about h2")!.textContent = i18n.about.title;
+  document.querySelector("#about .tagline")!.textContent = i18n.about.tagline;
+  document.querySelector("#about p:nth-of-type(2)")!.textContent = i18n.about.body;
+  document.querySelector("#about .shortcuts")!.textContent = i18n.about.shortcuts;
+  document.querySelector("#btn-about-close")!.textContent = i18n.about.close;
+  // Tools
+  document.querySelector('[data-tool="stamp"]')!.textContent = i18n.tools.stamp;
+  document.querySelector('[data-tool="erase"]')!.textContent = i18n.tools.erase;
+  document.querySelector('[data-tool="fill"]')!.textContent = i18n.tools.fill;
+  redraw();
+}
+
+langBtn.addEventListener("click", () => {
+  toggleLocale();
+  updateLangUI();
+});
+
+// --- Share ---
 document.querySelector("#btn-share")!.addEventListener("click", async () => {
   const encoded = btoa(unescape(encodeURIComponent(model.serializeState())));
   const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`;
+  if (url.length > 8000) {
+    toast(t().toast.shareTooLong);
+    return;
+  }
   history.replaceState(null, "", url);
   try {
     await navigator.clipboard.writeText(url);
-    toast("Share link copied");
+    toast(t().toast.shareCopied);
   } catch {
-    window.prompt("Copy this share link", url);
+    window.prompt(t().toast.shareFailed, url);
   }
 });
 
+// --- Export ---
 document.querySelector("#btn-png")!.addEventListener("click", async () => {
   try {
     const blob = await exportPng(model, 2);
-    downloadBlob(blob, "napkin-plan.png");
-    toast("PNG downloaded");
+    const safeTitle = model.map.title.replace(/[^a-z0-9]/gi, "-").toLowerCase() || "napkin-plan";
+    downloadBlob(blob, `${safeTitle}.png`);
+    toast(t().toast.pngDownloaded);
   } catch {
-    toast("PNG export failed");
+    toast(t().toast.loadFailed);
   }
 });
 
 document.querySelector("#btn-save")!.addEventListener("click", () => {
   const json = JSON.stringify(model.exportMap(), null, 2);
-  downloadBlob(new Blob([json], { type: "application/json" }), "napkin-plan.json");
-  toast("JSON downloaded");
+  const safeTitle = model.map.title.replace(/[^a-z0-9]/gi, "-").toLowerCase() || "napkin-plan";
+  downloadBlob(new Blob([json], { type: "application/json" }), `${safeTitle}.json`);
+  toast(t().toast.jsonDownloaded);
 });
 
 document.querySelector("#btn-load")!.addEventListener("click", () => {
@@ -212,16 +300,19 @@ document.querySelector("#btn-load")!.addEventListener("click", () => {
       const text = await file.text();
       const data = JSON.parse(text);
       model.importMap(data);
+      setTitle(data.title || "Untitled");
+      titleInput.value = model.map.title;
       persist();
-      toast("Map loaded — ready to edit");
+      toast(t().toast.mapLoaded);
       afterMapChange();
     } catch {
-      toast("Could not load map");
+      toast(t().toast.loadFailed);
     }
   };
   input.click();
 });
 
+// --- About ---
 document.querySelector("#btn-about")!.addEventListener("click", () => {
   aboutEl.classList.remove("hidden");
 });
@@ -232,6 +323,7 @@ aboutEl.addEventListener("click", (e) => {
   if (e.target === aboutEl) aboutEl.classList.add("hidden");
 });
 
+// --- Canvas interaction ---
 function downloadBlob(blob: Blob, name: string) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -302,21 +394,26 @@ canvas.addEventListener(
 
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
+// --- Keyboard shortcuts (skip when typing in input) ---
 window.addEventListener("keydown", (e) => {
+  const tag = (e.target as HTMLElement).tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+
   if (e.code === "Space") {
     spaceDown = true;
     e.preventDefault();
   }
   if (e.key === "s" || e.key === "S") setTool("stamp");
   if (e.key === "e" || e.key === "E") setTool("erase");
-  if (e.key === "f" || e.key === "F") setTool("fill");
+  if (e.key === "l" || e.key === "L") setTool("fill");
   if (e.key === "g" || e.key === "G") {
     model.showGrid = !model.showGrid;
     persist();
     document.querySelector("#btn-grid")!.classList.toggle("active", model.showGrid);
     redraw();
   }
-  if (e.key === "0" && !e.ctrlKey) {
+  if (e.key === "f" || e.key === "F") {
+    if (e.ctrlKey) return; // Ctrl+F = browser find
     fitZoom(model, canvas);
     redraw();
   }
@@ -324,18 +421,22 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (model.undo()) {
       persist();
-      toast("Undo — change reverted");
+      toast(t().toast.undo);
       redraw();
     }
   }
   if (e.ctrlKey && e.key === "y") {
     e.preventDefault();
     if (model.redo()) {
-      toast("Redo");
+      persist();
+      toast(t().toast.redo);
       redraw();
     }
   }
-  if (e.key === "Escape") aboutEl.classList.add("hidden");
+  if (e.key === "Escape") {
+    aboutEl.classList.add("hidden");
+    templateMenu.classList.add("hidden");
+  }
 });
 window.addEventListener("keyup", (e) => {
   if (e.code === "Space") spaceDown = false;
@@ -346,8 +447,13 @@ window.addEventListener("resize", () => {
   redraw();
 });
 
-// first paint after layout
+// --- Init ---
+updateLangUI();
 requestAnimationFrame(() => {
   fitZoom(model, canvas);
   redraw();
+  // Welcome toast on first visit
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    setTimeout(() => toast(t().toast.welcome), 600);
+  }
 });

@@ -22,12 +22,19 @@
       <header class="topbar">
         <div class="brand">
           <span class="brand-name">NapkinPlan</span>
-          <span class="brand-tag">Stamp a room layout in 60 seconds</span>
+          <input
+            type="text"
+            id="title-input"
+            class="title-input"
+            placeholder="Plan title…"
+            maxlength="48"
+            aria-label="Plan title"
+          />
         </div>
         <div class="group tools" role="toolbar" aria-label="Tools">
           <button type="button" data-tool="stamp" class="btn tool active" title="Stamp (S)">Stamp</button>
           <button type="button" data-tool="erase" class="btn tool" title="Erase (E)">Erase</button>
-          <button type="button" data-tool="fill" class="btn tool" title="Fill floor (F)">Fill</button>
+          <button type="button" data-tool="fill" class="btn tool" title="Fill floor (L)">Fill</button>
         </div>
         <div class="group history">
           <button type="button" id="btn-undo" class="btn icon" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -36,7 +43,7 @@
         <div class="group view">
           <button type="button" id="btn-zoom-out" class="btn icon" title="Zoom out">−</button>
           <button type="button" id="btn-zoom-in" class="btn icon" title="Zoom in">+</button>
-          <button type="button" id="btn-fit" class="btn icon" title="Fit view (0)">⊡</button>
+          <button type="button" id="btn-fit" class="btn icon" title="Fit view (F)">⊡</button>
           <button type="button" id="btn-grid" class="btn icon active" title="Toggle grid (G)">#</button>
         </div>
         <div class="group file">
@@ -48,9 +55,13 @@
           <button type="button" id="btn-save" class="btn" title="Save JSON">Save</button>
           <button type="button" id="btn-png" class="btn primary" title="Export PNG">Download PNG</button>
           <button type="button" id="btn-share" class="btn" title="Copy share link">Share</button>
+          <button type="button" id="btn-lang" class="btn icon" title="Switch language / Dil değiştir" aria-label="Language">TR</button>
           <button type="button" id="btn-about" class="btn icon" title="About">?</button>
         </div>
-        <div id="status" class="status">ready</div>
+        <div id="status" class="status">
+          <span id="status-title">ready</span>
+          <span id="status-cell" class="status-cell"></span>
+        </div>
       </header>
 
       <main class="stage">
@@ -60,7 +71,7 @@
       <footer class="bottombar">
         <div class="bottom-meta">
           <span class="label">Stamps</span>
-          <span id="hint" class="hint">Click / drag to stamp · RMB or Space pan · Scroll zoom · 0 fit</span>
+          <span id="hint" class="hint">Click / drag to stamp · RMB or Space pan · Scroll zoom · F fit</span>
         </div>
         <div id="palette" class="palette" role="listbox" aria-label="Stamp palette"></div>
       </footer>
@@ -76,7 +87,7 @@
             export PNG or JSON. No account.
           </p>
           <p class="shortcuts">
-            S stamp · E erase · F fill · G grid · Ctrl+Z/Y undo/redo · Space pan
+            S stamp · E erase · L fill · G grid · Ctrl+Z/Y undo/redo · Space pan
           </p>
           <button type="button" id="btn-about-close" class="btn primary">Close</button>
         </div>
