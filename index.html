@@ -15,7 +15,7 @@
       content="Stamp a room layout in 60 seconds. Free browser tool, no account."
     />
     <meta property="og:type" content="website" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   </head>
   <body>
     <div id="app">
@@ -30,8 +30,8 @@
           <button type="button" data-tool="fill" class="btn tool" title="Fill floor (F)">Fill</button>
         </div>
         <div class="group history">
-          <button type="button" id="btn-undo" class="btn icon" title="Undo (Ctrl+Z)">↶</button>
-          <button type="button" id="btn-redo" class="btn icon" title="Redo (Ctrl+Y)">↷</button>
+          <button type="button" id="btn-undo" class="btn icon" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+          <button type="button" id="btn-redo" class="btn icon" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>↷</button>
         </div>
         <div class="group view">
           <button type="button" id="btn-zoom-out" class="btn icon" title="Zoom out">−</button>
@@ -46,7 +46,8 @@
           </div>
           <button type="button" id="btn-load" class="btn" title="Load JSON">Load</button>
           <button type="button" id="btn-save" class="btn" title="Save JSON">Save</button>
-          <button type="button" id="btn-png" class="btn primary" title="Export PNG">PNG</button>
+          <button type="button" id="btn-png" class="btn primary" title="Export PNG">Download PNG</button>
+          <button type="button" id="btn-share" class="btn" title="Copy share link">Share</button>
           <button type="button" id="btn-about" class="btn icon" title="About">?</button>
         </div>
         <div id="status" class="status">ready</div>
@@ -64,7 +65,7 @@
         <div id="palette" class="palette" role="listbox" aria-label="Stamp palette"></div>
       </footer>
 
-      <div id="toast" class="toast hidden"></div>
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
       <div id="about" class="modal hidden" role="dialog" aria-modal="true">
         <div class="modal-card">
@@ -81,6 +82,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

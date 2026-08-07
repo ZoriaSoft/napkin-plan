@@ -1,4 +1,4 @@
-import { GRID, type MapData, type StampId, type Tool } from "./types";
+import { GRID, type AppState, type MapData, type StampId, type Tool } from "./types";
 import { isFloorStamp } from "../data/stamps";
 import { templateById } from "../data/templates";
 
@@ -17,6 +17,14 @@ export class PlanModel {
   private undoStack: MapData[] = [];
   private redoStack: MapData[] = [];
   private strokeOpen = false;
+
+  canUndo() {
+    return this.undoStack.length > 0;
+  }
+
+  canRedo() {
+    return this.redoStack.length > 0;
+  }
 
   constructor() {
     // Meeting room = clear closed rectangle (best first impression)
@@ -82,6 +90,32 @@ export class PlanModel {
 
   exportMap(): MapData {
     return cloneMap(this.map);
+  }
+
+  serializeState() {
+    return JSON.stringify({
+      map: this.exportMap(),
+      tool: this.tool,
+      stamp: this.stamp,
+      showGrid: this.showGrid,
+      zoom: this.zoom,
+      panX: this.panX,
+      panY: this.panY,
+    });
+  }
+
+  restoreState(raw: string) {
+    const state = JSON.parse(raw) as Partial<AppState>;
+    if (!state.map || !Array.isArray(state.map.cells)) throw new Error("Invalid saved plan");
+    this.map = normalizeMap(state.map);
+    if (state.tool === "stamp" || state.tool === "erase" || state.tool === "fill") this.tool = state.tool;
+    if (typeof state.stamp === "string") this.stamp = state.stamp as StampId;
+    if (typeof state.showGrid === "boolean") this.showGrid = state.showGrid;
+    if (typeof state.zoom === "number") this.zoom = Math.min(2.5, Math.max(0.35, state.zoom));
+    if (typeof state.panX === "number") this.panX = state.panX;
+    if (typeof state.panY === "number") this.panY = state.panY;
+    this.undoStack = [];
+    this.redoStack = [];
   }
 
   applyAt(c: number, r: number) {

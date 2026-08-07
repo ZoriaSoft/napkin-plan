@@ -6,6 +6,24 @@ import { TEMPLATES } from "./data/templates";
 import type { StampId, Tool } from "./core/types";
 
 const model = new PlanModel();
+const STORAGE_KEY = "napkin-plan:last-state:v1";
+
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) model.restoreState(saved);
+} catch {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+const shared = new URLSearchParams(window.location.hash.slice(1)).get("plan");
+if (shared) {
+  try {
+    model.restoreState(decodeURIComponent(escape(atob(shared))));
+  } catch {
+    toast("Could not open shared plan");
+  }
+}
+
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const paletteEl = document.querySelector<HTMLDivElement>("#palette")!;
 const statusEl = document.querySelector<HTMLDivElement>("#status")!;
@@ -21,10 +39,20 @@ let lastPan = { x: 0, y: 0 };
 let spaceDown = false;
 let toastTimer = 0;
 
+function persist() {
+  localStorage.setItem(STORAGE_KEY, model.serializeState());
+}
+
+function updateHistoryButtons() {
+  (document.querySelector("#btn-undo") as HTMLButtonElement).disabled = !model.canUndo();
+  (document.querySelector("#btn-redo") as HTMLButtonElement).disabled = !model.canRedo();
+}
+
 function redraw() {
   paint(ctx, model, hover);
   const stampName = STAMPS.find((s) => s.id === model.stamp)?.name ?? model.stamp;
   statusEl.textContent = `${model.map.title} · ${model.tool} · ${stampName}`;
+  updateHistoryButtons();
 }
 
 function toast(msg: string) {
@@ -36,6 +64,7 @@ function toast(msg: string) {
 
 function setTool(t: Tool) {
   model.tool = t;
+  persist();
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
     b.classList.toggle("active", b.dataset.tool === t);
   });
@@ -46,6 +75,7 @@ function setTool(t: Tool) {
 function setStamp(id: StampId) {
   model.stamp = id;
   model.tool = "stamp";
+  persist();
   setTool("stamp");
   document.querySelectorAll<HTMLButtonElement>(".stamp").forEach((b) => {
     b.classList.toggle("active", b.dataset.stamp === id);
@@ -55,6 +85,7 @@ function setStamp(id: StampId) {
 
 function afterMapChange() {
   fitZoom(model, canvas);
+  persist();
   redraw();
 }
 
@@ -89,6 +120,7 @@ for (const t of TEMPLATES) {
   item.innerHTML = `<strong>${t.title}</strong><span>${t.use}</span>`;
   item.addEventListener("click", () => {
     model.loadTemplate(t.id);
+    persist();
     templateMenu.classList.add("hidden");
     toast(`Template: ${t.title}`);
     afterMapChange();
@@ -102,13 +134,15 @@ document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
 
 document.querySelector("#btn-undo")!.addEventListener("click", () => {
   if (model.undo()) {
-    toast("Undo");
+    persist();
+    toast("Undo — change reverted");
     redraw();
   }
 });
 document.querySelector("#btn-redo")!.addEventListener("click", () => {
   if (model.redo()) {
-    toast("Redo");
+    persist();
+    toast("Redo — change restored");
     redraw();
   }
 });
@@ -127,6 +161,7 @@ document.querySelector("#btn-fit")!.addEventListener("click", () => {
 });
 document.querySelector("#btn-grid")!.addEventListener("click", (e) => {
   model.showGrid = !model.showGrid;
+  persist();
   (e.currentTarget as HTMLElement).classList.toggle("active", model.showGrid);
   toast(model.showGrid ? "Grid on" : "Grid off");
   redraw();
@@ -137,6 +172,18 @@ document.querySelector("#btn-templates")!.addEventListener("click", (e) => {
   templateMenu.classList.toggle("hidden");
 });
 document.addEventListener("click", () => templateMenu.classList.add("hidden"));
+
+document.querySelector("#btn-share")!.addEventListener("click", async () => {
+  const encoded = btoa(unescape(encodeURIComponent(model.serializeState())));
+  const url = `${window.location.origin}${window.location.pathname}#plan=${encoded}`;
+  history.replaceState(null, "", url);
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Share link copied");
+  } catch {
+    window.prompt("Copy this share link", url);
+  }
+});
 
 document.querySelector("#btn-png")!.addEventListener("click", async () => {
   try {
@@ -165,7 +212,8 @@ document.querySelector("#btn-load")!.addEventListener("click", () => {
       const text = await file.text();
       const data = JSON.parse(text);
       model.importMap(data);
-      toast("Map loaded");
+      persist();
+      toast("Map loaded — ready to edit");
       afterMapChange();
     } catch {
       toast("Could not load map");
@@ -206,6 +254,7 @@ canvas.addEventListener("pointerdown", (e) => {
   const cell = screenToCell(model, canvas, e.clientX, e.clientY);
   if (cell) {
     model.applyAt(cell.c, cell.r);
+    persist();
     hover = cell;
     redraw();
   }
@@ -223,6 +272,7 @@ canvas.addEventListener("pointermove", (e) => {
   hover = cell;
   if (painting && cell) {
     model.applyAt(cell.c, cell.r);
+    persist();
   }
   redraw();
 });
@@ -262,6 +312,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "f" || e.key === "F") setTool("fill");
   if (e.key === "g" || e.key === "G") {
     model.showGrid = !model.showGrid;
+    persist();
     document.querySelector("#btn-grid")!.classList.toggle("active", model.showGrid);
     redraw();
   }
@@ -272,7 +323,8 @@ window.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key === "z") {
     e.preventDefault();
     if (model.undo()) {
-      toast("Undo");
+      persist();
+      toast("Undo — change reverted");
       redraw();
     }
   }
